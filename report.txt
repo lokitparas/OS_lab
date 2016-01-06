@@ -1,0 +1,41 @@
+															Report LAB 1
+
+1)  No of CPU cores = 4  (using cat /proc/cpuinfo )
+    Total Memory = 8142244 kB ( using cat /proc/meminfo) 
+    Memory Free = 1541904 kB
+    Fraction free = 0.1893
+    Context switches  = 788395240 ( using cat/proc/stat as ctxt)
+    Processes forked = 407995
+
+2)  			Bottleneck              Commands				Justification
+	Cpu1		cpu                     top						
+
+
+
+3) 				User Time             Kernel Time	 Observation		   					Justification
+		
+	Cpu1		13.85                 0.00			Spends more time in user mode			The code is doing only computations
+													and negligible time in kernel mode		and no system calls are made,
+																							hence the process never switches to kernel mode 
+	
+	Cpu1print   0.21                  1.56			Spends more time in kernel mode 		The code is making systemcall "printf" hence it 
+													and less time in user mode				constantly keeps switching to kernel mode
+
+	
+	Cpu2 		12.38                 0.01			This process also spends maximum		The reason for less kernel time despite system call  
+													time in user mode despite making 		is because execution of gettimeofday system call takes
+													system calls							less time compared to printf.
+
+
+4)	Command used - cat /proc/[pid]/status
+
+	Cpu1 
+		voluntary_ctxt_switches = 1
+		Involuntary cntxt switches = 6027
+
+	Disk
+		voluntary_ctxt_switches = 14493
+		Involuntary cntxt switches = 3648
+
+	Justification : The number of voluntary context switches in 'disk' program are more as it waits for disk I/O hence it needs to voluntarily leave the processor until it gets response from disk and I/O is possible. Whereas there is no such disk I/O involved in 'Cpu1' program, hence it hardly leaves CPU voluntarily. And since involuntary context switches are random and vary from time to time, no such observation can be made on it. 
+ 
