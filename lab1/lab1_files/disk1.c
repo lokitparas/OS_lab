@@ -5,7 +5,7 @@
 #include <errno.h>
 
 #define FNAME_SIZE 100
-#define MAX_FILE_NO 10000
+#define MAX_FILE_NO 1960
 #define BLOCK_SIZE 1024
 
 int main(int argc, char *argv[])
