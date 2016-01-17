@@ -53,8 +53,9 @@ int main(int argc, char *argv[])
 
      int pid;
      while(1){
-        while((w = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
-            printf("%d\n", w);
+        while((w = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0){
+            kill(w, SIGKILL);
+        }
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0) 
               error("ERROR on accept");
@@ -69,12 +70,10 @@ int main(int argc, char *argv[])
         else if(pid > 0)
         {
             close(newsockfd);
-            printf("here2\n");
             continue;
         }
         else if(pid == 0)
         {
-            printf("here3\n");
              bzero(buffer,256);
              n = read(newsockfd,buffer,255);
              if (n < 0) error("ERROR reading from socket");
@@ -142,10 +141,13 @@ int main(int argc, char *argv[])
 
 
                 }
-            }
-            close(newsockfd);
-            //while((w = waitpid(pid, &status, WNOHANG|WUNTRACED)) > 0)printf("%d\n", w);
-            exit(0);
         }
+        close(newsockfd);
+        //while((w = waitpid(pid, &status, WNOHANG|WUNTRACED)) > 0)printf("%d\n", w);
+        // while((w = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0){
+        //     kill(w, SIGKILL);
+        // }
+        exit(0);
+    }
      return 0; 
 }
