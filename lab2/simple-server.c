@@ -1,5 +1,6 @@
 /* A simple server in the internet domain using TCP
    The port number is passed as an argument */
+#include <sys/wait.h>
 #include <stdio.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
@@ -13,6 +14,7 @@ void error(char *msg)
 
 int main(int argc, char *argv[])
 {
+    int status, w;
      int sockfd, newsockfd, portno, clilen;
      char buffer[256];
      struct sockaddr_in serv_addr, cli_addr;
@@ -51,8 +53,10 @@ int main(int argc, char *argv[])
 
      int pid;
      while(1){
-         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-         if (newsockfd < 0) 
+        while((w = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
+            printf("%d\n", w);
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+        if (newsockfd < 0) 
               error("ERROR on accept");
 
          /* read message from client */
@@ -111,12 +115,12 @@ int main(int argc, char *argv[])
                     unsigned char buff[512]={0};
                     bzero(buff,512);
                     int nread = fread(buff,1,512,filed);
-                    printf("Bytes read %d \n", nread);        
+                    //printf("Bytes read %d \n", nread);        
 
                     /* If read was success, send data. */
                     if(nread > 0)
                     {
-                        printf("Sending \n");
+                        //printf("Sending \n");
                         write(newsockfd, buff, nread);
                         fprintf(fp, "%s", buff);
 
@@ -140,11 +144,8 @@ int main(int argc, char *argv[])
                 }
             }
             close(newsockfd);
-            break;
+            //while((w = waitpid(pid, &status, WNOHANG|WUNTRACED)) > 0)printf("%d\n", w);
+            exit(0);
         }
-
-
-     //n = write(newsockfd,"I got your message",18);
-     //if (n < 0) error("ERROR writing to socket");
      return 0; 
 }
