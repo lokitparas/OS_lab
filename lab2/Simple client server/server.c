@@ -4,6 +4,7 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <fcntl.h>
 
 void error(char *msg)
 {
@@ -75,8 +76,8 @@ int main(int argc, char *argv[])
      printf("Here is the message: %s\n",filename);
 
      /* send reply to client */
-     FILE *filed = fopen(filename,"rb");
-        if(filed==NULL)
+     int filed = open(filename,O_RDONLY);
+        if(filed <0)
         {
             printf("File opern error");
             return 1;   
@@ -91,7 +92,8 @@ int main(int argc, char *argv[])
             /* First read file in chunks of 256 bytes */
             unsigned char buff[512]={0};
             bzero(buff,512);
-            int nread = fread(buff,1,512,filed);
+            int nread = read(filed,buff,512);
+	    printf("Contents%s\n",buff);
             printf("Bytes read %d \n", nread);        
 
             /* If read was success, send data. */

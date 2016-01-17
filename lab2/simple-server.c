@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
                      * There is something tricky going on with read .. 
                      * Either there was error, or we reached end of file.
                      */
-                     printf("%d\n", nread);
+                     //printf("%d\n", nread);
                     if (nread < 512)
                     {   
                         if (feof(filed))
