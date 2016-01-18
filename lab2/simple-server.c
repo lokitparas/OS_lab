@@ -5,7 +5,7 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
-
+#include <string.h>
 void error(char *msg)
 {
     perror(msg);
@@ -53,12 +53,16 @@ int main(int argc, char *argv[])
 
      int pid;
      while(1){
-        while((w = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
-            printf("%d\n", w);
+
+        
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0) 
               error("ERROR on accept");
 
+         while((w = waitpid(-1, 0, WNOHANG)) > 0){
+             // printf("%d\n", w);
+             kill(w,SIGKILL);
+            }
          /* read message from client */
 
         if ((pid = fork()) == -1)
@@ -67,7 +71,7 @@ int main(int argc, char *argv[])
             continue;
         }
         else if(pid > 0)
-        {
+        {   
             close(newsockfd);
             printf("here2\n");
             continue;
@@ -105,8 +109,7 @@ int main(int argc, char *argv[])
                     return 1;   
                 }
                 printf("File opened");
-                FILE *fp;
-                fp = fopen("Output1.txt", "w");
+                
 
                 /* Read data from file and send it */
                 while(1)
@@ -122,7 +125,7 @@ int main(int argc, char *argv[])
                     {
                         //printf("Sending \n");
                         write(newsockfd, buff, nread);
-                        fprintf(fp, "%s", buff);
+                        // fprintf(fp, "%s", buff);
 
                     }
 
@@ -142,10 +145,14 @@ int main(int argc, char *argv[])
 
 
                 }
-            }
-            close(newsockfd);
-            //while((w = waitpid(pid, &status, WNOHANG|WUNTRACED)) > 0)printf("%d\n", w);
-            exit(0);
+                close(filed);
+
+          	  
+	}
+          close(newsockfd);
+	  exit(0);   
+	  
+  
         }
      return 0; 
 }
