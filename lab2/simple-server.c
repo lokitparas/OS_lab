@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
      int pid;
      while(1){
 
-        
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0) 
               error("ERROR on accept");
@@ -73,12 +72,10 @@ int main(int argc, char *argv[])
         else if(pid > 0)
         {   
             close(newsockfd);
-            printf("here2\n");
             continue;
         }
         else if(pid == 0)
         {
-            printf("here3\n");
              bzero(buffer,256);
              n = read(newsockfd,buffer,255);
              if (n < 0) error("ERROR reading from socket");
@@ -150,9 +147,8 @@ int main(int argc, char *argv[])
           	  
 	}
           close(newsockfd);
-	  exit(0);   
-	  
-  
-        }
+	  exit(0);     
+
+    }
      return 0; 
 }
