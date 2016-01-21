@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 
      sockfd = socket(AF_INET, SOCK_STREAM, 0);
      if (sockfd < 0) 
-        error("ERROR opening socket");
+        error("ERROR opening socket server");
 
      /* fill in port number to listen on. IP address can be anything (INADDR_ANY) */
 
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 
 
                 }
-                close(filed);
+                fclose(filed);
 
           	  
 	}

@@ -138,7 +138,7 @@ void *connection_handler(void *threadid){
 	    
 	    sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	    if (sockfd < 0) 
-	        error("ERROR opening socket");
+	        error("ERROR opening socket client");
 
 	    /* fill in server address in sockaddr_in datastructure */
 
@@ -184,11 +184,12 @@ void *connection_handler(void *threadid){
 
 	    bzero(buffer,512);
 	    /* read reply from server */
-	    
+	    // FILE *filed = fopen("files_folder","w");
 	    while(1){
 		    bzero(buffer,512);
 		    n = read(sockfd,buffer,511);
 		    //printf("%d\n",n);
+		    // fprintf(filed, "%s", buffer);
 		    if(n==0){
 		    	 // printf("end of file\n");
 		    	
@@ -204,7 +205,7 @@ void *connection_handler(void *threadid){
 		     }
 		     
 	    }
-
+	    close(filed);
 	    gettimeofday(&end, NULL);
 	    global_time = (end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec);
 	     if(global_time > (tot_time * 1000000)){
@@ -213,6 +214,13 @@ void *connection_handler(void *threadid){
 	     }
 	     else{
 	     	sleep(sleep_time);
+	     	gettimeofday(&end, NULL);
+	     	global_time = (end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec);
+	     	if(global_time > (tot_time * 1000000)){
+	    	close(sockfd);
+	     		break; 
+	     		}	
+	     	close(sockfd);
 	     }
 	}
 
