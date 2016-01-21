@@ -15,32 +15,32 @@ void error(char *msg)
 int main(int argc, char *argv[])
 {
     int status, w;
-     int sockfd, newsockfd, portno, clilen;
-     char buffer[256];
-     struct sockaddr_in serv_addr, cli_addr;
-     int n;
-     if (argc < 2) {
+    int sockfd, newsockfd, portno, clilen;
+    char buffer[256];
+    struct sockaddr_in serv_addr, cli_addr;
+    int n;
+    if (argc < 2) {
          fprintf(stderr,"ERROR, no port provided\n");
          exit(1);
-     }
+    }
 
      /* create socket */
 
-     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-     if (sockfd < 0) 
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) 
         error("ERROR opening socket server");
 
-     /* fill in port number to listen on. IP address can be anything (INADDR_ANY) */
+     /* filling in port number to listen on */
 
-     bzero((char *) &serv_addr, sizeof(serv_addr));
-     portno = atoi(argv[1]);
-     serv_addr.sin_family = AF_INET;
-     serv_addr.sin_addr.s_addr = INADDR_ANY;
-     serv_addr.sin_port = htons(portno);
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    portno = atoi(argv[1]);
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(portno);
 
      /* bind socket to this port number on this machine */
 
-     if (bind(sockfd, (struct sockaddr *) &serv_addr,
+    if (bind(sockfd, (struct sockaddr *) &serv_addr,
               sizeof(serv_addr)) < 0) 
               error("ERROR on binding");
      
@@ -49,21 +49,17 @@ int main(int argc, char *argv[])
      listen(sockfd,5);
      clilen = sizeof(cli_addr);
 
-     /* accept a new request, create a newsockfd */
-
      int pid;
      while(1){
-
+		     /* accept a new request, create a newsockfd */     	
         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0) 
               error("ERROR on accept");
 
          while((w = waitpid(-1, 0, WNOHANG)) > 0){
-             // printf("%d\n", w);
-             kill(w,SIGKILL);
+                kill(w,SIGKILL);
             }
-         /* read message from client */
-
+         
         if ((pid = fork()) == -1)
         {
             close(newsockfd);
@@ -75,11 +71,13 @@ int main(int argc, char *argv[])
             continue;
         }
         else if(pid == 0)
-        {
+        {	/* read message from client */
+
              bzero(buffer,256);
              n = read(newsockfd,buffer,255);
              if (n < 0) error("ERROR reading from socket");
 
+             /* extracting filename */
              char filename[20];
              bzero(filename,20);
                int i=0;
@@ -95,9 +93,6 @@ int main(int argc, char *argv[])
             char files_folder[] = "./files/";
             strcat(files_folder, filename);
 
-
-             printf("Here is the message: %s\n",filename);
-
              /* send reply to client */
              FILE *filed = fopen(files_folder,"rb");
                 if(filed==NULL)
@@ -105,36 +100,29 @@ int main(int argc, char *argv[])
                     printf("File opern error");
                     return 1;   
                 }
-                printf("File opened");
                 
 
                 /* Read data from file and send it */
                 while(1)
                 {
-                    /* First read file in chunks of 256 bytes */
+                    /* First read file in chunks of 512 bytes */
                     unsigned char buff[512]={0};
                     bzero(buff,512);
                     int nread = fread(buff,1,512,filed);
-                    //printf("Bytes read %d \n", nread);        
-
+                            
                     /* If read was success, send data. */
                     if(nread > 0)
                     {
-                        //printf("Sending \n");
                         write(newsockfd, buff, nread);
-                        // fprintf(fp, "%s", buff);
-
+                        
                     }
 
-                    /*
-                     * There is something tricky going on with read .. 
-                     * Either there was error, or we reached end of file.
-                     */
-                     //printf("%d\n", nread);
+                    /* Either there was error, or we reached end of file. */
+                     
                     if (nread < 512)
                     {   
                         if (feof(filed))
-                            printf("End of file\n");
+                            // printf("End of file\n");
                         if (ferror(filed))
                             printf("Error reading\n");
                         break;
@@ -143,9 +131,7 @@ int main(int argc, char *argv[])
 
                 }
                 fclose(filed);
-
-          	  
-	}
+		}
           close(newsockfd);
 	  exit(0);     
 
