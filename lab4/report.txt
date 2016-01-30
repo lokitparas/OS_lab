@@ -1,0 +1,7 @@
+1) 
+echo $$ or echo $BASHPID
+
+ps -o ppid= <PID>
+pgrep -P <PPID>
+
+2) type -a cd

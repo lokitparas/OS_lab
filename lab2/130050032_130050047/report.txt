@@ -1,0 +1,33 @@
+130050032 -Amit Malav
+130050047 -Lokit Kumar Paras
+
+___________________________________________________________________________________________________________________________________________________________________
+
+
+Experimental Setup.
+To perform the experiment we used two separate machines(M1 and M2) to run server and client respectively.
+We used 100 Mbps ethernet cable to connect server and client.
+
+___________________________________________________________________________________________________________________________________________________________________
+
+
+Hardware Specification of machines:
+Machines			Processor							Memory		OS type
+M1: Intel® Core™ i3-3110M CPU @ 2.40GHz × 4 		| 3.86 GiB 	| 	64-bit
+M2: Intel® Core™ i5-4200M CPU @ 2.50GHz × 4 		| 7.7 GiB 	| 	64-bit
+
+___________________________________________________________________________________________________________________________________________________________________
+
+
+Instructions to run code:
+
+First compile both "server-mp.c" and "multi-client.c" files.
+
+<gcc -pthread multi-client.c -o client>
+<gcc server-mp.c -o server>
+
+It will generate "client" and "server" object files
+
+Now run the server followed by client with following command lines:
+./server <port no>
+./client <server-ip> <port no> <N> <total time> <sleep time> <mode>

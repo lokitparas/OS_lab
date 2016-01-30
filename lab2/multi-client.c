@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
 {
     int i,s;
     void *res;
-    if (argc < 3) {					// insufficient arguments
-       fprintf(stderr,"usage %s hostname port\n", argv[0]);
+    if (argc < 7) {					// insufficient arguments
+       fprintf(stderr, "insufficient arguments\n");
        exit(0);
     }
 
