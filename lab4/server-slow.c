@@ -40,7 +40,8 @@ int main(int argc, char *argv[])
 
      /* bind socket to this port number on this machine */
 
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
+    if (bind(sockfd, (struct sockaddr *) &serv_addr,
+              sizeof(serv_addr)) < 0) 
               error("ERROR on binding");
      
      /* listen for incoming connection requests */
@@ -93,7 +94,7 @@ int main(int argc, char *argv[])
             strcat(files_folder, filename);
 
              /* send reply to client */
-             FILE *filed = fopen(files_folder,"rb");
+             FILE *filed = fopen(filename,"rb");
                 if(filed==NULL)
                 {
                     printf("File opern error");
@@ -113,6 +114,8 @@ int main(int argc, char *argv[])
                     if(nread > 0)
                     {
                         write(newsockfd, buff, nread);
+                        //printf("it's time to sleep\n");
+                        sleep(1);
                         
                     }
 

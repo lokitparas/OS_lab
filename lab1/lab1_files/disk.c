@@ -1,9 +1,4 @@
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-
+#include <bits/stdc++.h>
 #define FNAME_SIZE 100
 #define MAX_FILE_NO 10000
 #define BLOCK_SIZE 1024
