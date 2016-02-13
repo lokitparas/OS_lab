@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fcntl.h>
-
+#include <assert.h>
 #define MAX_INPUT_SIZE 1024
 #define MAX_TOKEN_SIZE 64
 #define MAX_NUM_TOKENS 64
@@ -14,17 +14,43 @@ pid_t parent_id;
 pid_t group_pid;
 int child_count=0;
 int redirect= 0;
-void sig_handler(int signo){
+int sigint_called=0;
+char server_IP[50];
+char Port[10];
+int server_info =0;
 
+void sig_handler(int signo){
+  
   if (signo == SIGINT){
-       // printf("in here %d : %d\n", getpid(), parent_id);
-      if(killpg(group_pid, signo) == -1){
-        perror("Error signal:");
-      }
+    sigint_called =1;
+    if(child_count != 0){
+        if(kill(-group_pid, signo) == -1){
+          perror("Error signal:");
+        }
+        return;
+    }
   }
-  return;
 }
 
+void sigquit_handler (int sig) {
+    assert(sig == SIGQUIT);
+    pid_t self = getpid();
+    if (parent_id != self) { _exit(0);}
+}
+
+void my_sigchld_handler(int sig)
+{ 
+    pid_t p;
+    int status;
+
+    while ((p=waitpid(-1, &status, WNOHANG)) != -1)
+    {  
+        if(p != 0)printf("Pid %d exited.\n", p);     
+        // if(p==0) break;
+        /* Handle the death of pid p */
+    }
+    // printf("Pid %d exited.\n", group_pid);
+}
 
 char **tokenize(char *line)
 {
@@ -53,87 +79,194 @@ char **tokenize(char *line)
   return tokens;
 }
 
-void command_exec(char** tokens){
-	pid_t pid;
+void pipe_exec(char ** tokens){
+  pid_t pid, pid2;
   pid_t pgid;
   int tmp;
-  int getfile = 0;
-   
+  int i;  
+  
   char* output;
   int n;
-  // char* args[6];
-  char *args[] = {"get-one-file-sig", "files/foo0.txt", "127.0.0.1", "4001", "display",NULL};
+  // if(server_info == 0){ printf("No Server Info Available\n"); return;}
+  char *args[] = {"get-one-file-sig", tokens[1], server_IP, Port, "display",NULL};
+  
+    char **tokens2 = (char **)malloc(MAX_NUM_TOKENS * sizeof(char *));  // for storing the tokens for command on right side of pipe
+    bzero(tokens2, MAX_NUM_TOKENS);
+   int q;
+  for(q=3; tokens[q]!=NULL;q++){
+        tokens2[q-3] = tokens[q];
+    }
 
-  if ((strcmp(tokens[0], "ls") == 0 )) {
-           tokens[0] = "/bin/ls";     
-        }
 
-  if ((strcmp(tokens[0], "cat") == 0 )) { 
-            tokens[0] = "/bin/cat";     
-        }
-  if ((strcmp(tokens[0], "grep") == 0 ) ) {  
-            tokens[0] = "/bin/grep";     
-        }
-  if ((strcmp(tokens[0], "echo") == 0 )) {
-            tokens[0] = "/bin/echo";      
-        }
   if (strcmp(tokens[0], "getfl") == 0){
-          getfile = 1;
-          printf("qwertyu\n");  
-          if(tokens[1] != NULL && tokens[2] == NULL){ 
-              
+          if(tokens[1] != NULL){
+            if(server_info == 0){ printf("No Server Info Available\n"); return;}    
           }
 
-          else if(tokens[1] != NULL &&  (strcmp(tokens[2],">") == 0) && tokens[3] != NULL && tokens[4] == NULL){
-            
-            redirect = 1;
-            
-          }
           else{
                 printf("server : wrong arguments\n");
             return;
           }     
     }
+
+    /* creating pipe */
+  int pfds[2];    
+  pipe(pfds);
+child_count++;
+  pid = fork();     // forking for the left side command
   
-
-
-	pid = fork();
-  child_count++;
     if(pid == -1){
       perror ("fork");
       return;
     }
     if(pid == 0){
+      //child 1 body
       if(child_count == 1){group_pid = getpid();}
       tmp = setpgid(getpid(), group_pid);
-       // printf("My pid %d\n", getpid());
-       // printf("Group pid %d\n", getpgid(getpid()));
       if(tmp ==-1){
         printf("pid3 setpgid error.\n");
       }
-   		
+      
+      close(1);       /* close normal stdout */
+      dup(pfds[1]);   /* make stdout same as pfds[1] */
+      close(pfds[0]); /* we don't need this */
+      
+      n = execve(args[0],args,NULL);
+      
+      if(n == -1){perror("Command Execution Error"); exit(0);}   
+    }
+
+    else{ 
+      //parent body
+       group_pid = pid;
+      child_count++;
+      pid2 = fork();    // forking for the right side command
+     
+      if(pid2 == -1){
+         perror ("fork");
+        return;
+      }
+
+      if(pid2 == 0){
+        //child 2 body
+        if(child_count == 1){group_pid = getpid();}
+        tmp = setpgid(getpid(), group_pid);
+        if(tmp ==-1){
+          printf("pid3 setpgid error.\n");
+        }
+        close(0);       /* close normal stdin */
+        dup(pfds[0]);   /* make stdin same as pfds[0] */
+        close(pfds[1]); /* we don't need this */
+        n = execvp(tokens2[0],tokens2);      
+      }
+      else{
+        //parent body
+        wait(NULL);    
+      }
+    
+  }
+
+}
+
+void command_exec(char** tokens, int wait_stat){
+
+	pid_t pid;
+  pid_t pgid;
+  int background =0 ;   // set to 1 if program is to be run in background
+  int tmp;
+  int getfile = 0;      // set to 1 if command is to get some file.
+  int i;  
+  
+  char* output;
+  int n;
+  // if(server_info == 0){ printf("No Server Info Available\n"); return;}
+  char *args[] = {"get-one-file-sig", tokens[1], server_IP, Port, "display",NULL};    // with display
+  char *args2[] = {"get-one-file-sig", tokens[1], server_IP, Port, "nodisplay",NULL};   //without display
+
+  if (strcmp(tokens[0], "getfl") == 0){
+          if(tokens[1]!=NULL && tokens[2] == NULL)
+            getfile = 1;      // getfile without redirection
+
+          else if(tokens[1] != NULL &&  (strcmp(tokens[2],">") == 0) && tokens[3] != NULL && tokens[4] == NULL){
+            getfile = 1;
+            redirect = 1;   // redirection 
+            output = tokens[3];
+          }
+          else{
+                printf("Command : wrong arguments\n");
+            return;
+          }     
+    }
+
+    if ((strcmp(tokens[0], "getsq") == 0) || (strcmp(tokens[0], "getbg") == 0)) {
+          getfile = 2;        // not a normal getfile command 
+
+          if((strcmp(tokens[0], "getbg") == 0 )) { 
+            background=1;     // background command issued
+          }
+          if(tokens[1] != NULL && tokens[2] == NULL){
+            //correct arguments supplied;
+          }
+          else{
+                printf("Command : wrong arguments\n");
+            return;
+          }     
+    }
+if(getfile > 0)if(server_info == 0){ printf("No Server Info Available\n"); return;};
+    
+ if(background ==0) child_count++;     // since child count maintains no of foreground processes 
+ 
+	pid = fork();
+
+    if(pid == -1){
+      perror ("fork");
+      return;
+    }
+    if(pid == 0){
+      //child starts
+
+      if(child_count == 1){group_pid = getpid();}   // first foreground process, so it defines the group id of all parallel getfile processes
+      if(background ==0) { tmp = setpgid(getpid(), group_pid);}    // group id set for all foreground processes     
+      else{
+        
+        tmp = setpgid(getpid(), parent_id);}     // all background processes have group pid as parent pid
+
+      if(tmp ==-1){
+        printf("pid setpgid error.\n");
+      }
+      
       // redirection
    		if(redirect == 1){
+      
         int fd1 = creat(output, 0644);
         dup2(fd1, STDOUT_FILENO);
         close(fd1);
       }
 
       if( getfile == 0){
-        
-
-        n = execvp(tokens[0], tokens);
+        n = execvp(tokens[0], tokens);    // for commands except all get file commands
       }
       else{
+        if(getfile == 1)
+          n = execve(args[0],args,NULL);  // if it is simple getfile command
 
-        n = execve(args[0],args,NULL);
+        if(getfile == 2)
+          n = execve(args2[0],args2,NULL);  // for variants of getfile command ( getsq and getbg)
       }
-   		if(n == -1){perror("Error"); return;}
+   		if(n == -1){perror("Command Execution Error"); exit(0);}
     }
 
     else{ 
-      group_pid = pid;
-    	wait(NULL);
+
+      //parent body
+
+      if(child_count == 1) group_pid = pid;
+      if(background == 1){ printf("Process %d started in background\n", pid );}
+      
+      if(wait_stat == 1){
+    	   wait(NULL);       // only waits if it is foreground process and not parallel execution
+       }
+       return;
     }
 }
 
@@ -152,20 +285,16 @@ int cd(char *pth){
    }else{//true for dir w.r.t. /
     chdir(pth);
    }
-
    return 0;
 }
 
 
 void fun_detector(char** tokens){
+  if(tokens[0] == NULL) return;
+  child_count = 0;
 
-  printf("in here\n");
-  char server_IP[50];
-  bzero(server_IP, 50);
-  char Port[10];
-  bzero(Port, 10);
 
-  int pipe_pos =0;
+  int pipe_pos =-1;
   int i;
     for(i=0;tokens[i]!=NULL;i++){
        if(strcmp(tokens[i],"|") == 0){
@@ -173,82 +302,106 @@ void fun_detector(char** tokens){
        }
     }
 
-    if(pipe_pos == 0){
-        // if ((strcmp(tokens[0], "ls") == 0 )) {
-        //    char *args[] = {"/bin/ls", NULL};
-        //    command_exec(tokens,0,NULL);     
-        // }
-        // if ((strcmp(tokens[0], "cat") == 0 ) && tokens[1] != NULL && tokens[2] == NULL) { 
-        //     char *args[] = {"/bin/cat", tokens[1], NULL};
-        //      command_exec(tokens,0,NULL);     
-        // }
-        // if ((strcmp(tokens[0], "grep") == 0 ) && tokens[1] != NULL && tokens[2] == NULL) {  
-        //     char *args[] = {"/bin/grep", tokens[1], NULL};
-        //      command_exec(tokens,0,NULL);     
-        // }
-        if ((strcmp(tokens[0], "cd") == 0 )) {  
+    if(pipe_pos == -1){
+        
+        if ((strcmp(tokens[0], "cd") == 0 )) { 
+            /* command found is cd */ 
              if(tokens[1] != NULL && tokens[2] == NULL){
-                cd(tokens[1]);    
+                cd(tokens[1]);      //calling cd    
              }
               else{
                 printf("cd : wrong arguments\n");
+                return;
               }
         }
-        // if ((strcmp(tokens[0], "echo") == 0 ) && tokens[1] != NULL) {
-        //     int i=1;
-        //     char *temp[MAX_TOKEN_SIZE * MAX_NUM_TOKENS];
-        //     bzero(temp,MAX_TOKEN_SIZE * MAX_NUM_TOKENS);
-        //     while(tokens[i] != NULL){
-        //       strcat((char*)temp, tokens[i]);
-        //       strcat((char*)temp, " ");
-        //       i++;
-        //     }
 
-        //     char *args[] = {"/bin/echo", (char*)temp, NULL};
-        //     command_exec(args,0,NULL);      
-        // }
-
-        if ((strcmp(tokens[0], "server") == 0 )) {  
+        else if ((strcmp(tokens[0], "server") == 0 )) {  
            if(tokens[1] != NULL && tokens[2] != NULL && tokens[3] == NULL){
               strcpy(server_IP,tokens[1]);
               strcpy(Port,tokens[2]);
+              server_info = 1;
            }
             else{
               printf("server : wrong arguments\n");
             }
         }
-        // printf("not cd and server\n");
-        command_exec(tokens);
-        child_count = 0;
-        //getfl
+        
+        else if ((strcmp(tokens[0], "getsq") == 0 )) {
+            // getsq is nothing but getfl command executed one after the other
+              if(tokens[1] == NULL){
+                printf("Wrong arguments supplied\n");
+                return;
+              }
+              char **tokens2 = (char **)malloc(MAX_NUM_TOKENS * sizeof(char *));    // so tokens2 contains arguments for only one file at a time
+              bzero(tokens2, MAX_NUM_TOKENS);
+              tokens2[0] = tokens[0];
+              int j=1;
+              while(tokens[j] != NULL){     // getting entire file one after the other for all the filenames provided
+                   
+                  tokens2[1] = tokens[j];
+                  tokens2[2] = NULL;
+                  command_exec(tokens2,1);
+                  child_count = 0;   
+                   if(sigint_called == 1) {break;}
+                   printf("%s Downloaded\n",tokens[j] );
+                  j++;
+              }
+              int w;
+               for(w=0;tokens2[w]!=NULL;w++){
+                 free(tokens2[w]);
+              } 
+              free(tokens2);
+        }
+        else if ((strcmp(tokens[0], "getpl") == 0 )) {
+              if(tokens[1] == NULL){
+                printf("Wrong arguments supplied\n");
+                return;
+              }
+              char **tokens2 = (char **)malloc(MAX_NUM_TOKENS * sizeof(char *));
+              bzero(tokens2, MAX_NUM_TOKENS);
+              tokens2[0] = "getsq";
+              int j=1;
+              while(tokens[j] != NULL){
+                  printf("Started Downloading %s\n",tokens[j] );
+                  tokens2[1] = tokens[j];
+                  tokens2[2] = NULL;
+                  command_exec(tokens2,0);
+                  j++;
+                  printf("gpid -> %d\n",group_pid);
+              }
+               wait(NULL);
+              // waitpid(-group_pid, NULL,0);
 
-        // if (strcmp(tokens[0], "getfl") == 0){
-        //   if(tokens[1] != NULL && tokens[2] == NULL){ 
-        //     char *args[] = {"get-one-file-sig", "files/foo0.txt", "127.0.0.1", "4001", "display", NULL};
-        //     // char *args[] = {"get-one-file-sig", tokens[1], server_IP, Port, "display", NULL};
-        //     command_exec(args,0,"Not Applicable"); 
-        //     child_count = 0;
-        //     // printf("%d\n", child_c ount);
-        //   }
-        //   if(tokens[1] != NULL &&  (strcmp(tokens[2],">") == 0) && tokens[3] != NULL && tokens[4] == NULL){
-        //     char *args[] = {"get-one-file-sig", "files/foo0.txt", "127.0.0.1", "4001", "display",NULL};
-        //     // char *args[] = {"get-one-file-sig", tokens[1], server_IP, Port, "display", NULL};
-        //     command_exec(args,1,tokens[3]); 
-        //     child_count = 0;
-        //   }
-        //   else{
-        //     // printf("%s\n",tokens[2] );
-        //     printf("server : wrong arguments\n");
-        //   }     
-        // }
+              child_count=0;
+         return;     
+        }
+        else if ((strcmp(tokens[0], "getbg") == 0 )) {
+              command_exec(tokens,0);
+         return;     
+        }
+        else if(strcmp(tokens[0], "exit") == 0 && tokens[1] == NULL){
+          kill(-parent_id, SIGQUIT);
+          if(waitpid(-1,NULL,WNOHANG) > 0){
+             printf("Process completed execution\n");
+          }
+           exit(0);
+        }
+        else{
+          command_exec(tokens,1);
+          child_count = 0;
+        } 
       }
       else{
-        //pipe 
-           
+        //pipe
+          if((strcmp(tokens[0], "getfl") == 0) && tokens[1] != NULL && (strcmp(tokens[2], "|") == 0 )) {
+            pipe_exec(tokens);
+            child_count = 0;
+          }
+          else{
+            printf("Wrong arguments supplied\n");
+            return;
+          }
       }
-    
-
-
 }
 
 
@@ -261,23 +414,37 @@ void  main(void){
   char  line[MAX_INPUT_SIZE];            
   char  **tokens;              
   int i;
+  int status;
+  bzero(server_IP, 50);
+  bzero(Port, 10);
   if (signal(SIGINT, sig_handler) == SIG_ERR)printf("\ncan't catch SIGINT\n");
+  // signal(SIGCHLD, handler);
+
+  struct sigaction sa;
+
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = my_sigchld_handler;
+
+  sigaction(SIGCHLD, &sa, NULL);
+
+  signal(SIGQUIT, sigquit_handler);
+
+
   while (1){
-    
+    child_count = 0;
+    sigint_called = 0;
+    // while ((p=waitpid(-parent_id, &status, WNOHANG)) != -1)
+    // {
+    //     printf("Pid %d exited................\n", p);     
+    //     if(p==0) break;
+    // }
     printf("Hello>");     
     bzero(line, MAX_INPUT_SIZE);
     gets(line);           
-    printf("Got command %s\n", line);
     line[strlen(line)] = '\n'; //terminate with new line
     tokens = tokenize(line);
-  
-    fun_detector(tokens);
-     //do whatever you want with the commands, here we just print them
 
-    //  for(i=0;tokens[i]!=NULL;i++){
- 		  // printf("found token %s\n", tokens[i]);
-   //  }
-    
+    fun_detector(tokens);
     }
    // Freeing the allocated memory	
     for(i=0;tokens[i]!=NULL;i++){
