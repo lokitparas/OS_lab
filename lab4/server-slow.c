@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
                     {
                         write(newsockfd, buff, nread);
                         //printf("it's time to sleep\n");
-                        sleep(1);
+                        sleep(0.2);
                         
                     }
 
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
                     if (nread < 512)
                     {   
                         if (feof(filed))
-                            // printf("End of file\n");
+                             printf("End of file\n");
                         if (ferror(filed))
                             printf("Error reading\n");
                         break;

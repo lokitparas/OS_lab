@@ -1,0 +1,47 @@
+1)
+command: cd files
+result: path changes to ./files
+
+2)
+command: server 127.0.0.1 4000
+result: save server info
+
+3)
+command:
+for lab4 slow-server.c
+getfl files/foo0.txt
+for lab4 server-mp.c
+getfl foo0.txt
+result: file contents are displayed
+
+4)
+command: getfl files/foo0.txt > output.txt
+result: coontents get stored in output.txt
+
+5)
+command: getfl files/foo0.txt | grep yo
+result: shows the lines containing string "yo" from file foo0.txt
+
+6)
+command: getsq files/foo0.txt files/foo2.txt files/foo3.txt
+result: files are downloaded in sequence, one after the other
+
+7)
+command: getpl files/foo0.txt files/foo2.txt files/foo3.txt
+result: files are downloaded in parallel way
+
+8)
+getbg files/foo0.txt
+result: goes back to shell with getbg running in background, when execution completes it displays a message
+
+9)
+Built in commands:
+ls
+ls -la
+cat
+rm
+echo
+
+10)
+command: exit
+result: shell terminates along with all the child processes

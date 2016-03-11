@@ -71,7 +71,7 @@ void Enqueue(Queue *Q,int element)
                 printf("Queue is Full\n");
         }
         else
-        {
+        {       printf("in queue\n");
                 Q->size++;
                 Q->rear = Q->rear + 1;
                 /* As we fill the queue in circular fashion */
@@ -83,4 +83,13 @@ void Enqueue(Queue *Q,int element)
                 Q->elements[Q->rear] = element;
         }
         return;
+}
+
+int queueisfull(Queue *Q){
+    if(Q->size == Q->capacity)
+        {
+                printf("Queue is Full\n");
+                return 1;
+        }
+        return 0;
 }

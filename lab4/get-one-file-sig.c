@@ -8,7 +8,7 @@
 int bytes_downloaded;
 void sig_handler(int signo){
 	if (signo == SIGINT)
-		printf("\nReceived SIGINT; downloaded %d bytes so far.\n", bytes_downloaded);
+		printf("Received SIGINT; downloaded %d bytes so far.\n", bytes_downloaded);
 	exit(0);
 }
 
@@ -93,12 +93,13 @@ int main(int argc, char *argv[])
 	        break;
 	    }
 	    if (n < 0) {
+            printf("fkjaghalkgse\n");
 	         error("ERROR reading from socket");
 	         break;
 	     }
 	    if(strcmp("display",argv[4]) == 0)
 	        printf("%s",buffer);
     }
-    printf("\n");
+    // printf("\n");
     return 0;
 }
