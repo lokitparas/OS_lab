@@ -202,7 +202,7 @@ void *connection_handler(void *threadid){
 	    while(1){
 		    bzero(buffer,512);
 		    n = read(sockfd,buffer,511);
-		    
+		    printf("%d\n", n);
 		    if(n==0){
 		    	// printf("end of file\n");
 		    
