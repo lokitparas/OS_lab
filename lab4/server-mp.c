@@ -97,8 +97,8 @@ int main(int argc, char *argv[])
              FILE *filed = fopen(files_folder,"rb");
                 if(filed==NULL)
                 {
-                    printf("File opern error");
-                    return 1;   
+                    perror("File opern error");
+                    return -1;   
                 }
                 
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
                     if (nread < 512)
                     {   
                         if (feof(filed))
-                            // printf("End of file\n");
+                             printf("End of file\n");
                         if (ferror(filed))
                             printf("Error reading\n");
                         break;

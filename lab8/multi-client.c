@@ -186,7 +186,7 @@ void *connection_handler(void *threadid){
 		printf("%s\n",buffer);
 	   
 	    /* send user message to server */
-
+		printf("Sending\n");
 	    n = write(sockfd,buffer,strlen(buffer));
 	    if (n < 0) 
 	         error("ERROR writing to socket");
@@ -198,28 +198,36 @@ void *connection_handler(void *threadid){
 	    bzero(buffer,512);
 	    
 	    /* read reply from server */
-	    
+	    char threadstring[20]; 
+	    sprintf(threadstring,"%d",*threadnum);
+	    // FILE *fp;
+    	// fp = fopen(threadstring, "w");// "w" means that we are going to write on this file
+    
+
 	    while(1){
 		    bzero(buffer,512);
 		    n = read(sockfd,buffer,511);
-		    printf("%d\n", n);
+		    // printf("%d\n",n );
+		    // if(n>0){fprintf(fp, "%s", buffer);}
 		    if(n==0){
-		    	// printf("end of file\n");
+		    	printf("end of file\n");
 		    
 		    	/* collecting time stamp for complete file received */
 		    	gettimeofday(&req_end, NULL);
 		    	float temp_time= (req_end.tv_sec * 1000000 + req_end.tv_usec)- (req_start.tv_sec * 1000000 + req_start.tv_usec);
 		    	users_array[*threadnum].response_time = ((users_array[*threadnum].response_time * (users_array[*threadnum].total_completed)) + temp_time)/ ((users_array[*threadnum].total_completed) +1);
 		    	users_array[*threadnum].total_completed++;
+		    	// printf("next iteratipon\n"); 
 		    	break;	
 		    }
 		    if (n < 0) {
 		         error("ERROR reading from socket");
 		         break;
 		     }
-		     
+			    
 	    }
 	    
+	    // close(fp);
 	    gettimeofday(&end, NULL);
 	    global_time = (end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec);
 	     
@@ -239,6 +247,7 @@ void *connection_handler(void *threadid){
 	     	}	
 	     	close(sockfd);
 	     }
+		
 	}
 
 	return 0;
