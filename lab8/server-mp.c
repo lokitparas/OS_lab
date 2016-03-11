@@ -1,3 +1,4 @@
+
 /* A simple server in the internet domain using TCP
    The port number is passed as an argument */
 #include <sys/wait.h>
@@ -6,14 +7,16 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
-#include "queue.c"
+// #include "queue.c"
+#include "UnboundQ.c"
 #include <pthread.h>
 
 int num_threads;
 int queue_size;
 int empty;
 int newsockfd;
-Queue *Q;
+// Queue *Q;
+UnboundQueue *Q;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_not_empty = PTHREAD_COND_INITIALIZER;
 pthread_cond_t queue_has_space = PTHREAD_COND_INITIALIZER;
@@ -33,11 +36,19 @@ int main(int argc, char *argv[])
     void* res;
     struct sockaddr_in serv_addr, cli_addr;
     int n;
+
     if (argc < 2) {
          fprintf(stderr,"ERROR, no port provided\n");
          exit(1);
     }
-
+    if (argc < 3) {
+         fprintf(stderr,"ERROR, number of threads not provided\n");
+         exit(1);
+    }
+    if (argc < 4) {
+         fprintf(stderr,"ERROR, queue size not provided\n");
+         exit(1);
+    }
      /* create socket */
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -49,7 +60,15 @@ int main(int argc, char *argv[])
     bzero((char *) &serv_addr, sizeof(serv_addr));
     portno = atoi(argv[1]); 
     num_threads = atoi(argv[2]);
+    if(num_threads <= 0){
+      printf("No of threads should be greater than 0\n");
+      exit(0);
+    }
     queue_size = atoi(argv[3]);
+    if(queue_size < 0){
+      printf("Queue size should be greater than equal to 0\n");
+      exit(0);
+    }
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
@@ -66,10 +85,16 @@ int main(int argc, char *argv[])
               sizeof(serv_addr)) < 0) 
               error("ERROR on binding");
 
-    Q = createQueue(queue_size);
+    /* constructing Queue */
+    if(queue_size !=0){
+      Q = U_createQueue1(queue_size);
+    }
+    else{
+      Q = U_createQueue();
+    }
     empty=0;
-     
-     /* listen for incoming connection requests */
+       
+    /* creating threads */
 
     pthread_t sniffer_thread[num_threads];
     for (i=0; i<num_threads; i++) {
@@ -79,8 +104,9 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
+    
+    /* listen for incoming connection requests */
 
-  
      listen(sockfd,5);
      clilen = sizeof(cli_addr);
 
@@ -96,7 +122,7 @@ int main(int argc, char *argv[])
         if (newsockfd < 0) 
               error("ERROR on accept");
         pthread_mutex_lock(&mutex);
-        	Enqueue(Q,newsockfd);
+        	U_Enqueue(Q,newsockfd);
         	printf("New newsockfd enqueue %d\n",newsockfd );
         	pthread_cond_signal(&queue_not_empty);
         pthread_mutex_unlock(&mutex);
@@ -122,10 +148,10 @@ void *worker_thread(void *threadid){
 	    	pthread_cond_wait(&queue_not_empty, &mutex);
 	    	printf("Waking up %d\n",*threadnum);
 	    }
-	    int sockfd = front(Q);
+	    int sockfd = U_front(Q);
 	    printf("got front %d\n",*threadnum);
 	    // printf("newsockfd %d for %d\n",newsockfd,*threadnum);
-	    Dequeue(Q);
+	    U_Dequeue(Q);
 	    pthread_cond_signal(&queue_has_space);
 	    printf("Dequeue %d\n",*threadnum);
 	    pthread_mutex_unlock(&mutex);

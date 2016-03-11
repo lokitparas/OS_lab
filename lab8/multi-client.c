@@ -198,13 +198,19 @@ void *connection_handler(void *threadid){
 	    bzero(buffer,512);
 	    
 	    /* read reply from server */
-	    
+	    char threadstring[20]; 
+	    sprintf(threadstring,"%d",*threadnum);
+	    // FILE *fp;
+    	// fp = fopen(threadstring, "w");// "w" means that we are going to write on this file
+    
+
 	    while(1){
 		    bzero(buffer,512);
 		    n = read(sockfd,buffer,511);
 		    // printf("%d\n",n );
+		    // if(n>0){fprintf(fp, "%s", buffer);}
 		    if(n==0){
-		    	// printf("end of file\n");
+		    	printf("end of file\n");
 		    
 		    	/* collecting time stamp for complete file received */
 		    	gettimeofday(&req_end, NULL);
@@ -221,6 +227,7 @@ void *connection_handler(void *threadid){
 			    
 	    }
 	    
+	    // close(fp);
 	    gettimeofday(&end, NULL);
 	    global_time = (end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec);
 	     
