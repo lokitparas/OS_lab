@@ -29,7 +29,7 @@ stats* users_array;
 void error(char *msg)
 {
     perror(msg);
-    exit(0);
+   pthread_exit(NULL);
 }
 
 void *connection_handler(void *socket_desc);
@@ -157,7 +157,7 @@ void *connection_handler(void *threadid){
 
 	    if (server == NULL) {
 	        fprintf(stderr,"ERROR, no such host\n");
-	        exit(0);
+	        pthread_exit(NULL);
 	    }
 	    
 	    bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -200,15 +200,11 @@ void *connection_handler(void *threadid){
 	    /* read reply from server */
 	    char threadstring[20]; 
 	    sprintf(threadstring,"%d",*threadnum);
-	    // FILE *fp;
-    	// fp = fopen(threadstring, "w");// "w" means that we are going to write on this file
-    
+	
 
 	    while(1){
 		    bzero(buffer,512);
 		    n = read(sockfd,buffer,511);
-		    // printf("%d\n",n );
-		    // if(n>0){fprintf(fp, "%s", buffer);}
 		    if(n==0){
 		    	printf("end of file\n");
 		    
@@ -217,7 +213,6 @@ void *connection_handler(void *threadid){
 		    	float temp_time= (req_end.tv_sec * 1000000 + req_end.tv_usec)- (req_start.tv_sec * 1000000 + req_start.tv_usec);
 		    	users_array[*threadnum].response_time = ((users_array[*threadnum].response_time * (users_array[*threadnum].total_completed)) + temp_time)/ ((users_array[*threadnum].total_completed) +1);
 		    	users_array[*threadnum].total_completed++;
-		    	// printf("next iteratipon\n"); 
 		    	break;	
 		    }
 		    if (n < 0) {
