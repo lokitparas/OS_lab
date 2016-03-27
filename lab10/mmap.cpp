@@ -50,7 +50,7 @@ void mapped_read(int buffer_size){
     close(fd);
   }
   gettimeofday(&end, NULL);  // start time for the experiment noted
-  float throughput = 25*10.0/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
+  float throughput = 25*10.0*1000000/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
   cout << "Throughput is: "<< throughput << endl;
 }
 void mapped_write(int buffer_size){
@@ -117,6 +117,6 @@ int main(){
     }
     mapped_read(20);
   }
-  // else mapped_read(512);
-  mapped_write(20);
+  else mapped_read(512);
+  // mapped_write(20);
 }
