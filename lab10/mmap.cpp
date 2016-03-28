@@ -1,3 +1,4 @@
+#include <sys/types.h>
 #include <iostream>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -11,8 +12,10 @@
 #include <string.h>
 #include <sys/time.h>
 using namespace std;
-
-
+char* array[25];
+int sizes[25];
+int size;
+struct stat buf;
 void report(int arg){
   pid_t pid =getpid();
   string call1="cat /proc/"+to_string(pid)+"/status | grep VmSize";
@@ -26,7 +29,24 @@ void report(int arg){
   cin.ignore(std::numeric_limits<streamsize>::max(),'\n');
 }
 
-void mapped_read(int buffer_size){
+void mapped_read(){
+  struct timeval start, end;
+  gettimeofday(&start, NULL);  // start time for the experiment noted
+  char tmp;
+  
+  // cout << f_size << endl;
+  for(int  i = 0; i < 25; i++){
+      for(int j=0;j<sizes[i];j++){
+        tmp = array[i][j];
+      }
+      
+  }
+  gettimeofday(&end, NULL);  // start time for the experiment noted
+  float throughput = 25*size/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
+  cout << "Throughput is: "<< throughput << endl;
+}
+
+void unmapped_read(int buffer_size){
   struct timeval start, end;
   gettimeofday(&start, NULL);  // start time for the experiment noted
   for(int  i = 0; i < 25; i++){
@@ -34,7 +54,9 @@ void mapped_read(int buffer_size){
     int fd = open(tmp.c_str(), O_RDONLY);
     char buff[buffer_size];
     int nread;
-
+    fstat(fd, &buf);
+    size = buf.st_size;
+      
     while(1)
         {
             /* First read file in chunks of 10 bytes */
@@ -44,16 +66,33 @@ void mapped_read(int buffer_size){
             {   
                 break;
             }
-
-
         }
     close(fd);
   }
+
   gettimeofday(&end, NULL);  // start time for the experiment noted
-  float throughput = 25*10.0*1000000/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
+  float throughput = 25*size/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
   cout << "Throughput is: "<< throughput << endl;
 }
-void mapped_write(int buffer_size){
+
+void mapped_write(){
+  struct timeval start, end;
+  gettimeofday(&start, NULL);  // start time for the experiment noted
+  for(int  i = 0; i < 25; i++){
+    int bytes_written = 0;
+    // cout << sizes[i] << endl; 
+    while(bytes_written < sizes[i]){
+      // nwrite = write(fd, buff, buffer_size);
+      array[i][bytes_written]='0';
+      bytes_written += 1;
+    }
+  }
+  gettimeofday(&end, NULL);  // start time for the experiment noted
+  float throughput = 25*size/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
+  cout << "Throughput is: "<< throughput << endl;
+}
+
+void unmapped_write(int buffer_size){
   struct timeval start, end;
   gettimeofday(&start, NULL);  // start time for the experiment noted
   for(int  i = 0; i < 25; i++){
@@ -61,62 +100,53 @@ void mapped_write(int buffer_size){
     int fd = open(tmp.c_str(), O_RDWR);
     char buff[buffer_size];
     int nwrite;
-    off_t f_size;
-    f_size = lseek(fd, 0, SEEK_END);
-    lseek(fd, 0, SEEK_SET);
+    fstat(fd, &buf);
+    size = buf.st_size;
+
     int bytes_written = 0;
     for(int i = 0; i < buffer_size; i++){
       buff[i] = '0';
     }
-    while(bytes_written < f_size){
+    while(bytes_written < size){
       nwrite = write(fd, buff, buffer_size);
       bytes_written += buffer_size;
     }
     close(fd);
   }
   gettimeofday(&end, NULL);  // start time for the experiment noted
-  float throughput = 25*10.0/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
+  float throughput = 25*size/((end.tv_sec * 1000000 + end.tv_usec)- (start.tv_sec * 1000000 + start.tv_usec));
   cout << "Throughput is: "<< throughput << endl;
 }
 
 
 
 int main(){
-  // report(0);
-  // //Memory Map
-  // FILE* fd = fopen("file.txt", "r");
-  // off_t f_size;
-  // f_size = lseek(fileno(fd), 0, SEEK_END);
-  // mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fileno(fd), 0);
-  // report(1);
-
-  // //Read first char
-  // char buff[10];
-  // bzero(buff, 10);
-  // fseek(fd, 0, SEEK_SET);
-  // int tmp = fread(buff, 1, 1, fd);
-  // cout <<"read char is " <<buff << endl;
-  // report(2);
-
-  // //Read 10,000th char
-  // bzero(buff, 10);
-  // fseek(fd, 10000, SEEK_SET);
-  // tmp = fread(buff, 1, 1, fd);
-  // cout <<"read char at 10000 offset is: " <<buff << endl;
-  // report(3);
 
   int flag = 0;
   if(flag == 1){
+    
     for(int  i = 0; i < 25; i++){
-      string tmp = "file"+to_string(i)+".txt";
-      int fd = open(tmp.c_str(), O_RDONLY);
-      off_t f_size;
-      f_size = lseek(fd, 0, SEEK_END);
-      mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+      string tmp = "./files/file"+to_string(i)+".txt";
+      int fd = open(tmp.c_str(), O_RDWR);
+      fstat(fd, &buf);
+      sizes[i] = buf.st_size;
+      size = sizes[i];
+      // f_size = lseek(fd, 0, SEEK_END);
+      // cout << sizes[i] << endl;
+      array[i] = (char*)mmap(NULL, sizes[i], PROT_WRITE|PROT_READ, MAP_SHARED, fd, 0);
+      // cout << "poop" << endl;
       close(fd);
     }
-    mapped_read(20);
+    // mapped_read();
+    mapped_write();
+
+    for(int i=0; i<25; i++){
+      msync(array[i],sizes[i],MS_SYNC);
+      munmap(array[i],sizes[i]);
+    }
   }
-  else mapped_read(512);
-  // mapped_write(20);
+  else {
+        // unmapped_read(512);
+        unmapped_write(512);
+      }
 }

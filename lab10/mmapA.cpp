@@ -30,21 +30,24 @@ int main(){
   int fd = open("files/file0.txt", O_RDONLY);
   off_t f_size;
   f_size = lseek(fd, 0, SEEK_END);
-  mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+  cout<<f_size<<endl;
+  char* ptr = (char*)mmap(NULL, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
   report(1);
 
   //Read first char
   char buff[10];
   bzero(buff, 10);
-  lseek(fd, 0, SEEK_SET);
-  int tmp = read(fd, buff, 1);
+  // lseek(fd, 0, SEEK_SET);
+  // int tmp = read(fd, buff, 1);
+  buff[0]=ptr[0];
   cout <<"read char is " <<buff << endl;
   report(2);
 
   //Read 10,000th char
-  bzero(buff, 10);
-  lseek(fd, 10000, SEEK_SET);
-  tmp =read(fd, buff, 1);
+  // bzero(buff, 10);
+  // lseek(fd, 10000, SEEK_SET);
+  // tmp =read(fd, buff, 1);
+  buff[0]=ptr[70000];
   cout <<"read char at 10000 offset is: " <<buff << endl;
   report(3);
   close(fd);
